@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Flashcards Interactivas</title>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #eef2f7;
+    margin: 20px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+    gap: 20px;
+  }
+  .card {
+    perspective: 1000px;
+    cursor: pointer;
+  }
+  .inner {
+    position: relative;
+    width: 100%; height: 0;
+    padding-bottom: 130%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+  }
+  .card.flipped .inner {
+    transform: rotateY(180deg);
+  }
+  .face {
+    position: absolute;
+    width: 100%; height: 100%;
+    backface-visibility: hidden;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 3px 3px 8px rgba(0,0,0,0.15);
+  }
+  .front {
+    background: linear-gradient(135deg, #89f7fe, #66a6ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .front h3 {
+    color: #fff;
+    font-size: 1.5em;
+    text-transform: capitalize;
+  }
+  .back {
+    background: #fff;
+    transform: rotateY(180deg);
+    padding: 10px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .back img {
+    width: 100%;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-grow: 1;
+    margin-top: 10px;
+  }
+  .back .text {
+    font-size: 0.9em;
+    color: #333;
+  }
+</style>
+</head>
+<body>
+
+<h1>Flashcards de Verbos Irregulares</h1>
+<div class="grid" id="cards-container"></div>
+
+<script>
+const verbs = [
+  {
+    "inf": "Arise",
+    "ps": "Arose",
+    "pp": "Arisen",
+    "es": "Surgir, Levantarse",
+    "img": "https://st2.depositphotos.com/3591429/8813/i/950/depositphotos_88130668-stock-photo-businessman-with-concept-idea.jpg"
+  },
+  {
+    "inf": "Awake",
+    "ps": "Awoke",
+    "pp": "Awoken",
+    "es": "Despertarse",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F027%2F120%2F158%2Foriginal%2Fcartoon-kid-awake-morning-clipart-free-png.png&f=1&nofb=1&ipt=5b3e6651bd244924b159243c8b54a02b84c52bb393e07afc8c753b80ba6e2bed"
+  },
+  {
+    "inf": "Be/ am, are, is",
+    "ps": "Was / Were",
+    "pp": "Been",
+    "es": "Ser / Estar",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F008%2F259%2F298%2Foriginal%2Fyoung-man-cartoon-high-self-esteem-concept-proud-young-man-pointing-at-himself-with-both-hands-confident-successful-flat-illustration-isolated-on-white-background-free-vector.jpg&f=1&nofb=1&ipt=f93d4924836b32de10541e84a4df9d0782575a3a2baece631f9722486c2d9dda"
+  },
+  {
+    "inf": "Become",
+    "ps": "Became",
+    "pp": "Become",
+    "es": "Llegar a Ser",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fi.pinimg.com%2F736x%2F2d%2F39%2Fd0%2F2d39d0780baf5d1789be61fd1a944475.jpg&f=1&nofb=1&ipt=832e2f11f2b35842fbd5bd04445e465db7c173ed9305637ceb6e2e6e975800c0"
+  },
+  {
+    "inf": "Begin",
+    "ps": "Began",
+    "pp": "Begun",
+    "es": "Empezar",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fimg.freepik.com%2Ffree-vector%2Fflat-design-race-starting-line-illustration_23-2149483519.jpg%3Fw%3D1800%26t%3Dst%3D1655912156~exp%3D1655912756~hmac%3D23fabd9405612ccc4b3f64c5630b649a0f60cbe9dcf062a4089ca0931759f650&f=1&nofb=1&ipt=e334624ac618ffbf2ac73934d00de15560deb9464cf800fac5fba507ddc80558"
+  },
+  {
+    "inf": "Bend",
+    "ps": "Bent",
+    "pp": "Bent",
+    "es": "Doblar",
+    "img": "https://i.pinimg.com/474x/50/82/67/50826788f6a48179f57c932a6aae390a.jpg"
+  },
+  {
+    "inf": "Bet",
+    "ps": "Bet",
+    "pp": "Bet",
+    "es": "Apostar",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F002%2F097%2F642%2Foriginal%2Fman-addicted-to-gambling-slot-machines-lover-of-excitement-flat-character-illustration-vector.jpg&f=1&nofb=1&ipt=5a30e9920b72de9a9d72972a51ae0fe9e81da8772db1ba2d1a27173ec994f616"
+  },
+  {
+    "inf": "Bind",
+    "ps": "Bound",
+    "pp": "Bound",
+    "es": "Atar, encuadernar",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fi.pinimg.com%2F736x%2F99%2Fc0%2F56%2F99c056e79221106d18d3c27735aa5d5a--tie-shoes-teaching-kids.jpg&f=1&nofb=1&ipt=6b24c26e1e55479a32267d0895458122ed9e6e900b01e486eadead54fb1ef8c5"
+  },
+  {
+    "inf": "Bid",
+    "ps": "Bid",
+    "pp": "Bid",
+    "es": "Pujar",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fonlinestorageauctions.com%2Fwp-content%2Fuploads%2F2013%2F06%2FDave-Hester-Auctioneer.png&f=1&nofb=1&ipt=fee7820c35825bb173cdca8fdd500f311f62ff35fa439c25c955f17ec3034e12"
+  },
+  {
+    "inf": "Bite",
+    "ps": "Bit",
+    "pp": "Bitten",
+    "es": "Morder",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fglobalsymbols.com%2Fuploads%2Fproduction%2Fimage%2Fimagefile%2F14526%2F17_14527_aa57ea80-cb9b-4b44-b538-4e3fa699d0d0.png&f=1&nofb=1&ipt=33c1bd44ab40d9c19374451907c6b3da65797870d324b8da50314eae6b0543f0"
+  },
+  {
+    "inf": "Bleed",
+    "ps": "Bled",
+    "pp": "Bled",
+    "es": "Sangrar",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fattic.sh%2Fxgw3kp3ve8df0e5wsdx2fkgs0vay&f=1&nofb=1&ipt=17fefd8fe09b2c89999f7d5a0b00963187b2489a98adede6bcd65af5bc4d2d75"
+  },
+  {
+    "inf": "Blow",
+    "ps": "Blew",
+    "pp": "Blown",
+    "es": "Soplar",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fcdn3.emoji.gg%2Femojis%2F8427-kiss-blow.png&f=1&nofb=1&ipt=1899990d42d070cb309d0612c6f2e97d0f9fc5d56ea0ae3360e972bd66215785"
+  },
+  {
+    "inf": "Break",
+    "ps": "Broke",
+    "pp": "Broken",
+    "es": "Romper",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/4tqmx77k90nrcmk352g44ntoj13v"
+  },
+  {
+    "inf": "Bring",
+    "ps": "Brought",
+    "pp": "Brought",
+    "es": "Traer Llevar",
+    "img": "https://cdn-icons-png.flaticon.com/512/5775/5775458.png"
+  },
+  {
+    "inf": "Broadcast",
+    "ps": "Broadcast",
+    "pp": "Broadcast",
+    "es": "Radiar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/cpw0ps1al7b1s2n5jcrpt3ftrn7c"
+  },
+  {
+    "inf": "Build",
+    "ps": "Built",
+    "pp": "Built",
+    "es": "Edificar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/4z0xxaf1ibmqz49ehvh0so3uj13u"
+  },
+  {
+    "inf": "Burn",
+    "ps": "Burnt / Burned",
+    "pp": "Burnt / Burned",
+    "es": "Quemar",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fmedia.defense.gov%2F2011%2FMar%2F21%2F2000274415%2F2000%2F2000%2F0%2F110321-F-TU872-001.JPG&f=1&nofb=1&ipt=1985ce88666fbeaec509cab9ffcf7f433dd736e825967230342bb66043d1281c"
+  },
+  {
+    "inf": "Buy",
+    "ps": "Bought",
+    "pp": "Bought",
+    "es": "Comprar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/8hez456v0r2o0yfbawwlzfyltdjz"
+  },
+  {
+    "inf": "Catch",
+    "ps": "Caught",
+    "pp": "Caught",
+    "es": "Coger",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fmedia.wired.com%2Fphotos%2F60a43a284440b920d7993c5d%2F1%3A1%2Fw_1600&f=1&nofb=1&ipt=7c1544bbcfa505dd6854ada42a6681662b682835ed0d74548a588960331bc116"
+  },
+  {
+    "inf": "Come",
+    "ps": "Came",
+    "pp": "Come",
+    "es": "Venir",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F012%2F576%2F806%2Foriginal%2Ffamily-welcoming-guests-at-the-door-vector.jpg&f=1&nofb=1&ipt=2038778635338f0b87ae508060adb797914a6ee984e3ab23d43a98c10698d7b0"
+  },
+  {
+    "inf": "Cost",
+    "ps": "Cost",
+    "pp": "Cost",
+    "es": "Costar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/hj5vled5pi7v244ve59n1b99y8wf"
+  },
+  {
+    "inf": "Cut",
+    "ps": "Cut",
+    "pp": "Cut",
+    "es": "Cortar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/17mwswmdp68oagfz1tz3er7ag9m4"
+  },
+  {
+    "inf": "Choose",
+    "ps": "Chose",
+    "pp": "Chosen",
+    "es": "Elegir",
+    "img": "https://cdn.vectorstock.com/i/preview-2x/87/99/hesitant-expression-emoji-vector-20778799.webp"
+  },
+  {
+    "inf": "Cling",
+    "ps": "Clung",
+    "pp": "Clung",
+    "es": "Agarrarse",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fmedia.istockphoto.com%2Fid%2F1440277253%2Fphoto%2Fmale-clinging-on-the-rock-trying-not-to-fall-dont-give-up-concept.jpg%3Fs%3D612x612%26w%3Dis%26k%3D20%26c%3D-GsxGLwl1SttLOhsieo3IRHubKgr_o4lW_oZBiB3t50%3D&f=1&nofb=1&ipt=1d2cf2bede89a6382ad1a459eef5cefbb3999dd4dc3064ffa862c6b1ef497dab"
+  },
+  {
+    "inf": "Creep",
+    "ps": "Crept",
+    "pp": "Crept",
+    "es": "Arrastrarse",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpapers.com%2Fimages%2Fhd%2Fworm-family-cartoon-png-fwo-9qza7ixs0ehe6lwn.png&f=1&nofb=1&ipt=952294eaf80df38f579e858a7313fcc8c56ddbbc897b3125f49c38583252b706"
+  },
+  {
+    "inf": "Deal",
+    "ps": "Dealt",
+    "pp": "Dealt",
+    "es": "Tratar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/jg0bsgmik5gkifq2cv8d5ek40tkn"
+  },
+  {
+    "inf": "Dig",
+    "ps": "Dug",
+    "pp": "Dug",
+    "es": "Cavar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/i07rqyxxbbekvc95jceoqextn84s"
+  },
+  {
+    "inf": "Do (Does)",
+    "ps": "Did",
+    "pp": "Done",
+    "es": "Hacer",
+    "img": "https://us.123rf.com/450wm/gigidigidesign/gigidigidesign2504/gigidigidesign250443761/244981396-photographer-working-in-his-studio-vector-illustration-in-flat-style.jpg?ver=6"
+  },
+  {
+    "inf": "Draw",
+    "ps": "Drew",
+    "pp": "Drawn",
+    "es": "Dibujar",
+    "img": "https://m.media-amazon.com/images/I/71AvDPaCsPL.png"
+  },
+  {
+    "inf": "Dream",
+    "ps": "Dreamt /Dreamed",
+    "pp": "Dreamt /Dreamed",
+    "es": "Soñar",
+    "img": "https://png.pngtree.com/png-clipart/20230913/original/pngtree-dreaming-clipart-meditation-and-sleep-concept-in-a-cartoon-style-vector-png-image_11071658.png"
+  },
+  {
+    "inf": "Drink",
+    "ps": "Drank",
+    "pp": "Drunk",
+    "es": "Beber",
+    "img": "https://assets-au-01.kc-usercontent.com/59e62872-3ec4-02cb-f1dd-a1d60d76195d/e45d88f6-3cc9-4462-b102-d9438ff356bc/Does%20drinking%20water%20from%20plastic%20drink%20bottles%20cause%20cancer.png"
+  },
+  {
+    "inf": "Drive",
+    "ps": "Drove",
+    "pp": "Driven",
+    "es": "Conducir",
+    "img": "https://www.bmwgroup.com/content/dam/grpw/websites/bmwgroup_com/innovation/automatisiertes_fahren/720x720_Automatisiertes_Fahren.png"
+  },
+  {
+    "inf": "Eat",
+    "ps": "Ate",
+    "pp": "Eaten",
+    "es": "Comer",
+    "img": "https://laviemd.us/wp-content/uploads/2024/11/image1-1.png"
+  },
+  {
+    "inf": "Fall",
+    "ps": "Fell",
+    "pp": "Fallen",
+    "es": "Caer",
+    "img": "https://cdn0.iconfinder.com/data/icons/people-lifestyle/100/Accident-12-512.png"
+  },
+  {
+    "inf": "Feel",
+    "ps": "Felt",
+    "pp": "Felt",
+    "es": "Sentir",
+    "img": "https://lingokids.com/wp-content/uploads/2020/04/Feelings.png"
+  },
+  {
+    "inf": "Fight",
+    "ps": "Fought",
+    "pp": "Fought",
+    "es": "Luchar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/zc2yjf38ydci6il5mpcasi9cen6r"
+  },
+  {
+    "inf": "Find",
+    "ps": "Found",
+    "pp": "Found",
+    "es": "Encontrar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/cdt4102ndvva1427ej4xavjrzv12"
+  },
+  {
+    "inf": "Flee",
+    "ps": "Fled",
+    "pp": "Fled",
+    "es": "Huir",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/eyc0a6rh38xwk2uyxlyxbylon4ib"
+  },
+  {
+    "inf": "Fly",
+    "ps": "Flew",
+    "pp": "Flown",
+    "es": "Volar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/bhw8i6b9z9yca67ia9t3zvoys4in"
+  },
+  {
+    "inf": "Forget",
+    "ps": "Forgot",
+    "pp": "Forgotten",
+    "es": "Olvidar",
+    "img": "https://png.pngtree.com/png-vector/20240827/ourmid/pngtree-a-man-thinking-3d-art-png-image_13557438.png"
+  },
+  {
+    "inf": "Forgive",
+    "ps": "Forgave",
+    "pp": "Forgiven",
+    "es": "Perdonar",
+    "img": "https://nutrifaith.wordpress.com/wp-content/uploads/2014/02/day41-mat-9.gif"
+  },
+  {
+    "inf": "Freeze",
+    "ps": "Froze",
+    "pp": "Frozen",
+    "es": "Helar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/6fqquqpmvgk7oesqpvyf11cn3gt3"
+  },
+  {
+    "inf": "Get",
+    "ps": "Got",
+    "pp": "Got / Gotten",
+    "es": "Obtener",
+    "img": "https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/themes/3239232/settings_images/IFYeivGDSm6wlnmsA2CB_woman.png"
+  },
+  {
+    "inf": "Give",
+    "ps": "Gave",
+    "pp": "Given",
+    "es": "Dar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/7wvinikqkpypplextq0ffwybk5gf"
+  },
+  {
+    "inf": "Go (Goes)",
+    "ps": "Went",
+    "pp": "Gone",
+    "es": "Ir",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/dor7mu5v51vrv3uh27xr5qrowns5"
+  },
+  {
+    "inf": "Grow",
+    "ps": "Grew",
+    "pp": "Grown",
+    "es": "Crecer",
+    "img": "https://cdn0.iconfinder.com/data/icons/growing-flowers/100/8-512.png"
+  },
+  {
+    "inf": "Hear",
+    "ps": "Heard",
+    "pp": "Heard",
+    "es": "Oir",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/h5ohy08mpoo3nigit5iumwybkh26"
+  },
+  {
+    "inf": "Hide",
+    "ps": "Hid",
+    "pp": "Hidden",
+    "es": "Ocultar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/l5z8viux0pgxenstqgeswx3rh914"
+  },
+  {
+    "inf": "Hit",
+    "ps": "Hit",
+    "pp": "Hit",
+    "es": "Golpear",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/hnvo6ly8uh61jb0km5tojbqebzf8"
+  },
+  {
+    "inf": "Pay",
+    "ps": "Paid",
+    "pp": "Paid",
+    "es": "Pagar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/l141flwcvpa061f5eb1bqpnkay0z"
+  },
+  {
+    "inf": "Put",
+    "ps": "Put",
+    "pp": "Put",
+    "es": "Poner",
+    "img": "https://globalsymbols.com/uploads/production/image/imagefile/21455/17_21456_96b986b7-6dba-44cb-b356-448a0cd132f5.png"
+  },
+  {
+    "inf": "Read",
+    "ps": "Read",
+    "pp": "Read",
+    "es": "Leer",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/wc8y9jqkq5ryolpcowgv02ymerdo"
+  },
+  {
+    "inf": "Ride",
+    "ps": "Rode",
+    "pp": "Ridden",
+    "es": "Montar",
+    "img": "https://static.vecteezy.com/system/resources/previews/047/242/806/non_2x/women-riding-a-horse-isolated-on-transparent-background-free-png.png"
+  },
+  {
+    "inf": "Ring",
+    "ps": "Rang",
+    "pp": "Rung",
+    "es": "Llamar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/am6txy1h3jwmqcembea6ftawa4h6"
+  },
+  {
+    "inf": "Rise",
+    "ps": "Rose",
+    "pp": "Risen",
+    "es": "Levantarse",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/wj83cql82ne72kndde7oychvaovj"
+  },
+  {
+    "inf": "Run",
+    "ps": "Ran",
+    "pp": "Run",
+    "es": "Correr",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/6h9v8e620vx7m99a9yjbfo3htd9a"
+  },
+  {
+    "inf": "Say",
+    "ps": "Said",
+    "pp": "Said",
+    "es": "Decir",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/bexxokdjmyiq1cciig3c9huqkqic"
+  },
+  {
+    "inf": "See",
+    "ps": "Saw",
+    "pp": "Seen",
+    "es": "Ver",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/5tr1z8nwrb4rz3x9jj7kouootb27"
+  },
+  {
+    "inf": "Seek",
+    "ps": "Sought",
+    "pp": "Sought",
+    "es": "Buscar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/63xwlhpdecq7hxht1w4rc3io24sl"
+  },
+  {
+    "inf": "Sell",
+    "ps": "Sold",
+    "pp": "Sold",
+    "es": "Vender",
+    "img": "https://vision1homebuyers.com/wp-content/uploads/2021/10/House-6_2.png"
+  },
+  {
+    "inf": "Send",
+    "ps": "Sent",
+    "pp": "Sent",
+    "es": "Enviar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/ijidmrnbhxusft2gezny4tlsm2wg"
+  },
+  {
+    "inf": "Shake",
+    "ps": "Shook",
+    "pp": "Shaken",
+    "es": "Sacudir",
+    "img": "https://images.emojiterra.com/google/noto-emoji/unicode-16.0/color/1024px/1fae8.png"
+  },
+  {
+    "inf": "Sing",
+    "ps": "Sang",
+    "pp": "Sung",
+    "es": "Cantar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/x9vbamj9pm2047kqfw96aj9btsdp"
+  },
+  {
+    "inf": "Sleep",
+    "ps": "Slept",
+    "pp": "Slept",
+    "es": "Dormir",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/pqmc7o5h85mahv59rpttjtfvkpmm"
+  },
+  {
+    "inf": "Smell",
+    "ps": "Smelt",
+    "pp": "Smelt",
+    "es": "Oler",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/bxicjsz60thoreb8lkkyhsqt1oj6"
+  },
+  {
+    "inf": "Speak",
+    "ps": "Spoke",
+    "pp": "Spoken",
+    "es": "Hablar",
+    "img": "https://png.pngtree.com/png-vector/20220927/ourmid/pngtree-speaking-vector-png-image_6219399.png"
+  },
+  {
+    "inf": "Spend",
+    "ps": "Spent",
+    "pp": "Spent",
+    "es": "Gastar",
+    "img": "https://cdn-icons-png.flaticon.com/512/10365/10365571.png"
+  },
+  {
+    "inf": "Spin",
+    "ps": "Spun",
+    "pp": "Spun",
+    "es": "Hilar",
+    "img": "https://png.pngtree.com/png-vector/20230220/ourmid/pngtree-spin-wheel-vector-illustration-png-image_6606505.png"
+  },
+  {
+    "inf": "Steal",
+    "ps": "Stole",
+    "pp": "Stolen",
+    "es": "Robar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/hn5amq4j75eruad4rn2op7ibfn9q"
+  },
+  {
+    "inf": "Sweat",
+    "ps": "Sweat",
+    "pp": "Sweat",
+    "es": "Sudar",
+    "img": "https://media.tenor.com/87QKarbzVisAAAAe/sweat-nervous.png"
+  },
+  {
+    "inf": "Sweep",
+    "ps": "Swept",
+    "pp": "Swept",
+    "es": "Barrer",
+    "img": "https://i0.wp.com/sweepllc.com/wp-content/uploads/2024/06/sweeping.png?fit=500%2C500&ssl=1"
+  },
+  {
+    "inf": "Swim",
+    "ps": "Swam",
+    "pp": "Swum",
+    "es": "Nadar",
+    "img": "https://static.thcdn.com/widgets/241-en/32/Speedo_Assets_Mobile-102332.png"
+  },
+  {
+    "inf": "Swing",
+    "ps": "Swung",
+    "pp": "Swung",
+    "es": "Columpiarse",
+    "img": "https://cdn.shopify.com/s/files/1/0545/0041/products/Big-Brutus-Swing-2.jpg?v=1741703694"
+  },
+  {
+    "inf": "Take",
+    "ps": "Took",
+    "pp": "Taken",
+    "es": "Coger",
+    "img": "https://globalsymbols.com/uploads/production/image/imagefile/46378/17_46379_0591077c-0cdc-485e-b280-912e26623824.png"
+  },
+  {
+    "inf": "Teach",
+    "ps": "Taught",
+    "pp": "Taught",
+    "es": "Enseñar",
+    "img": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHzuGl879QRPw8SI39mMT4n8Ze9FfhF7kKIw&s"
+  },
+  {
+    "inf": "Think",
+    "ps": "Thought",
+    "pp": "Thought",
+    "es": "Pensar",
+    "img": "https://cdn-icons-png.freepik.com/512/8359/8359832.png"
+  },
+  {
+    "inf": "Wake",
+    "ps": "Woke",
+    "pp": "Woken",
+    "es": "Despertarse",
+    "img": "https://cdn-icons-png.flaticon.com/512/4804/4804212.png"
+  },
+  {
+    "inf": "Wear",
+    "ps": "Wore",
+    "pp": "Worn",
+    "es": "Llevar puesto",
+    "img": "https://www.realsimple.com/thmb/ycgT5nKOZg4W5xCu6-HMBxDyrVQ=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/ForConcerts-65d0cbe5117144079b2d56fdc6783235.png"
+  },
+  {
+    "inf": "Weep",
+    "ps": "Wept",
+    "pp": "Wept",
+    "es": "Llorar",
+    "img": "https://cdn2.iconfinder.com/data/icons/emotion-on-a-face/600/8-512.png"
+  },
+  {
+    "inf": "Wet",
+    "ps": "Wet",
+    "pp": "Wet",
+    "es": "Mojar",
+    "img": "https://cdn-icons-png.flaticon.com/512/11036/11036873.png"
+  },
+  {
+    "inf": "Win",
+    "ps": "Won",
+    "pp": "Won",
+    "es": "Ganar",
+    "img": "https://images.icon-icons.com/1603/PNG/512/awward-reward-cup-win-first-place_108578.png"
+  },
+  {
+    "inf": "Write",
+    "ps": "Wrote",
+    "pp": "Written",
+    "es": "Escribir",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/zpq8bcrc43omsm6lty4u3ms6agaa"
+  },
+  {
+    "inf": "Dance",
+    "ps": "Danced /t/",
+    "pp": "Danced /t/",
+    "es": "Bailar",
+    "img": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT24P7nBDqaJir9TZeTYB_CqDj-C51IN2s0Ig&s"
+  },
+  {
+    "inf": "Jump",
+    "ps": "Jumped /t/",
+    "pp": "Jumped /t/",
+    "es": "Brincar / Saltar",
+    "img": "https://png.pngtree.com/png-vector/20240131/ourmid/pngtree-a-man-jumping-high-with-successful-excitement-png-image_11639976.png"
+  },
+  {
+    "inf": "Like",
+    "ps": "Liked /t/",
+    "pp": "Liked /t/",
+    "es": "Gustar",
+    "img": "https://pngimg.com/d/like_PNG64.png"
+  },
+  {
+    "inf": "Stop",
+    "ps": "Stopped /t/",
+    "pp": "Stopped /t/",
+    "es": "Detener",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/xu94v23i0ier3dil3raxl6w9hvdf"
+  },
+  {
+    "inf": "Work",
+    "ps": "Worked /t/",
+    "pp": "Worked /t/",
+    "es": "Trabajar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/nz8z79vkhprh48gt197aphpdv8mc"
+  },
+  {
+    "inf": "Cook",
+    "ps": "Cooked /t/",
+    "pp": "Cooked /t/",
+    "es": "Cocinar",
+    "img": "https://www.ourcookingjourney.com/uploads/1/2/4/7/124776650/recipes-chef-francesco-mattana_orig.png"
+  },
+  {
+    "inf": "Close",
+    "ps": "Closed /d/",
+    "pp": "Closed /d/",
+    "es": "Cerrar",
+    "img": "https://globalsymbols.com/uploads/production/image/imagefile/20580/17_20581_f2cd66ad-5a41-4495-9d39-cf662026e238.png"
+  },
+  {
+    "inf": "Follow",
+    "ps": "Followed/d/",
+    "pp": "Followed/d/",
+    "es": "Seguir",
+    "img": "https://teaminsights.io/wp-content/uploads/2022/09/Leader-pana-1024x1024.png"
+  },
+  {
+    "inf": "Hurry",
+    "ps": "Hurried /d/",
+    "pp": "Hurried /d/",
+    "es": "Apurar / Darse prisa",
+    "img": "https://cdn-icons-png.flaticon.com/512/150/150422.png"
+  },
+  {
+    "inf": "Play",
+    "ps": "Played /d/",
+    "pp": "Played /d/",
+    "es": "Jugar",
+    "img": "https://cdn-icons-png.freepik.com/256/1185/1185877.png?semt=ais_incoming"
+  },
+  {
+    "inf": "Rain",
+    "ps": "Rained /d/",
+    "pp": "Rained /d/",
+    "es": "Llover",
+    "img": "https://cdn-icons-png.freepik.com/512/899/899697.png"
+  },
+  {
+    "inf": "Stay",
+    "ps": "Stayed /d/",
+    "pp": "Stayed /d/",
+    "es": "Permanecer",
+    "img": "https://cdn-icons-png.flaticon.com/512/8661/8661970.png"
+  },
+  {
+    "inf": "Study",
+    "ps": "Studied /d/",
+    "pp": "Studied /d/",
+    "es": "Estudiar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/va15y4scxif9olyq4w6x58yn8kst"
+  },
+  {
+    "inf": "Travel",
+    "ps": "Traveled /d/",
+    "pp": "Traveled /d/",
+    "es": "Viajar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/k4cb8npsgu6099kzx6mw554vd46p"
+  },
+  {
+    "inf": "Love",
+    "ps": "Loved /d/",
+    "pp": "Loved /d/",
+    "es": "Amar",
+    "img": "https://imgproxy.attic.sh/insecure/f:png/plain/https://attic.sh/avix31jmx562lad4u2uuylwgd6js"
+  },
+  {
+    "inf": "answer",
+    "ps": "answered",
+    "pp": "answered",
+    "es": "responder",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F021%2F692%2F478%2Foriginal%2Fincoming-call-on-phone-screen-hand-holding-smartphone-with-call-app-interface-on-display-accepting-incoming-call-from-friend-concept-vector.jpg&f=1&nofb=1&ipt=c6e0c72f8f4ab9b50153727f719a6c1a33bd2bb0e6ff33705679cfe6f45c9b50"
+  },
+  {
+    "inf": "arrive",
+    "ps": "arrived",
+    "pp": "arrived",
+    "es": "llegar",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F020%2F438%2F476%2Flarge_2x%2Fchildren-returning-home-from-school-vector.jpg&f=1&nofb=1&ipt=aca38e9f2f8fdd2bf8f1475709a3ce05039c7b97effd31843baf4b1381bb2667"
+  },
+  {
+    "inf": "ask",
+    "ps": "asked",
+    "pp": "asked",
+    "es": "preguntar",
+    "img": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fpng.pngtree.com%2Fpng-clipart%2F20230914%2Foriginal%2Fpngtree-ask-a-question-vector-png-image_12156071.png&f=1&nofb=1&ipt=095fae808764cb3bfef9fc291b0aeba01203b3bd5f9a09bc3c80085215ce460f"
+  }
+];
+
+const container = document.getElementById('cards-container');
+
+verbs.forEach(v => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <div class="inner">
+      <div class="face front">
+        <h3>${v.inf}</h3>
+      </div>
+      <div class="face back">
+        <div class="text">
+          <strong>Pasado simple:</strong> ${v.ps}<br>
+          <strong>Participio:</strong> ${v.pp}<br>
+          <strong>Español:</strong> ${v.es}
+        </div>
+        <img src="${v.img}" alt="${v.inf}">
+      </div>
+    </div>
+  `;
+  card.addEventListener('click', ()=> card.classList.toggle('flipped'));
+  container.appendChild(card);
+});
+</script>
+
+</body>
+</html>
